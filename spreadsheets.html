@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Control Maintenance</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #0a0f1d; 
+            background-image: 
+                radial-gradient(at 50% 0%, rgba(30, 144, 255, 0.15) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, rgba(0, 245, 255, 0.05) 0px, transparent 40%);
+            background-attachment: fixed;
+            color: #e2e8f0; 
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 1000px;
+            margin-bottom: 15px;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        h1 {
+            color: #00f5ff; 
+            text-shadow: 0 0 10px rgba(0, 245, 255, 0.3);
+            font-size: 1.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .btn-navegacao {
+            background: rgba(0, 245, 255, 0.1);
+            border: 1px solid #00f5ff;
+            color: #00f5ff;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .btn-navegacao:hover {
+            background: #00f5ff;
+            color: #0a0f1d;
+            box-shadow: 0 0 10px rgba(0, 245, 255, 0.4);
+        }
+
+        .status-loading {
+            color: #8a99ad;
+            margin-bottom: 30px;
+            font-style: italic;
+            text-align: center;
+            width: 100%;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 15px;
+            width: 100%;
+            max-width: 1000px;
+            margin-bottom: 30px;
+        }
+
+        .equip-card {
+            background: rgba(16, 24, 48, 0.5);
+            border: 2px solid rgba(0, 245, 255, 0.3);
+            border-radius: 6px;
+            padding: 18px 12px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: bold;
+            color: #00f5ff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            word-wrap: break-word;
+        }
+
+        .equip-card:hover {
+            background: rgba(0, 245, 255, 0.1);
+            border-color: #00f5ff;
+            box-shadow: 0 0 15px rgba(0, 245, 255, 0.4);
+            transform: translateY(-3px);
+        }
+
+        .equip-card.active {
+            background: #00f5ff;
+            color: #0a0f1d;
+            border-color: #00f5ff;
+            box-shadow: 0 0 20px rgba(0, 245, 255, 0.6);
+        }
+
+        .equip-panel, .history-panel {
+            background: rgba(16, 24, 48, 0.8);
+            border: 1px solid rgba(0, 245, 255, 0.2);
+            border-radius: 8px;
+            padding: 25px;
+            width: 100%;
+            max-width: 1000px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: none; 
+        }
+
+        .equip-panel h2, .history-panel h2 {
+            color: #00f5ff;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(0, 245, 255, 0.2);
+            padding-bottom: 10px;
+        }
+
+        .btn-corretiva {
+            background-color: #ff3333;
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            font-weight: bold;
+            font-size: 11px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: background 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 0 8px rgba(255, 51, 51, 0.4);
+        }
+
+        .btn-corretiva:hover {
+            background-color: #cc0000;
+            transform: scale(1.05);
+            box-shadow: 0 0 12px rgba(255, 51, 51, 0.7);
+        }
+        
+        .acoes-container {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 6px;
+        }
+
+        .txt-obs {
+            width: 100%;
+            background: #090d16;
+            border: 1px solid rgba(255,255,255,0.15);
+            color: #fff;
+            border-radius: 4px;
+            padding: 6px;
+            font-size: 0.8rem;
+            resize: none;
+            outline: none;
+        }
+
+        .txt-obs:focus { border-color: #00f5ff; }
+
+        .tabela-wrapper {
+            overflow-x: auto; 
+            width: 100%; 
+            border: 1px solid rgba(255,255,255,0.08); 
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%; 
+            border-collapse: separate; 
+            border-spacing: 0; 
+            text-align: left; 
+            font-size: 0.88rem;
+        }
+
+        th {
+            padding: 12px; 
+            color: #00f5ff; 
+            background: #0b1528;
+            border-bottom: 2px solid #00f5ff;
+        }
+
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            border-right: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.75);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 9999; visibility: hidden; opacity: 0;
+            transition: opacity 0.2s, visibility 0.2s;
+        }
+
+        .modal-overlay.active { visibility: visible; opacity: 1; }
+
+        .modal-box {
+            background: #101830; border: 2px solid #00f5ff; border-radius: 8px;
+            padding: 25px; width: 320px; text-align: center;
+            box-shadow: 0 0 25px rgba(0,245,255,0.2);
+        }
+
+        .modal-box h3 { color: #00f5ff; margin-bottom: 15px; text-transform: uppercase; }
+
+        .modal-box input[type="password"] {
+            width: 100%; padding: 10px; background: #070a14; border: 1px solid rgba(0,245,255,0.4);
+            border-radius: 4px; color: #fff; text-align: center; font-size: 1.2rem;
+            letter-spacing: 3px; margin-bottom: 20px; outline: none;
+        }
+
+        .modal-flex-btn { 
+            display: flex; 
+            gap: 10px; 
+        }
+        
+        .modal-btn { 
+            flex: 1; 
+            padding: 10px; 
+            border: none; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            text-transform: uppercase; 
+            font-size: 0.85rem; 
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
+        
+        .btn-confirmar { background: #34c759; color: #0a0f1d; }
+        .btn-cancelar { background: #ff3333; color: #fff; }
+    </style>
+</head>
+<body>
+
+    <div class="header-container">
+        <h1>SISTEMA DE MANUTENÇÃO MENSAL/ANUAL</h1>
+        <button class="btn-navegacao" id="btn-alternar-tela" onclick="alternarTelaHistorico()">Consultar Histórico</button>
+    </div>
+    
+    <div id="status-busca" class="status-loading">Carregando equipamentos da planilha...</div>
+
+    <!-- Tela Principal de Equipamentos -->
+    <div class="cards-grid" id="container-cards"></div>
+    <div id="painel-equipamento" class="equip-panel"></div>
+
+    <!-- Quadro de Consulta de Histórico -->
+    <div id="painel-historico" class="history-panel">
+        <h2>Quadro Geral de Histórico de Manutenções</h2>
+        <div class="tabela-wrapper">
+            <table id="tabela-historico-dados">
+                <thead>
+                    <tr>
+                        <th>Data / Hora</th>
+                        <th>Equipamento (Aba)</th>
+                        <th>Tipo de Ação</th>
+                        <th>Observações anotadas</th>
+                    </tr>
+                </thead>
+                <tbody id="corpo-tabela-historico">
+                    <!-- Preenchido dinamicamente via API -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal de Senha -->
+    <div id="modal-senha" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Senha Operacional</h3>
+            <input type="password" id="input-senha-modal" placeholder="••••" maxlength="8">
+            <div class="modal-flex-btn">
+                <button class="modal-btn btn-cancelar" onclick="fecharModalSenha()">Cancelar</button>
+                <button class="modal-btn btn-confirmar" id="btn-modal-enviar">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const URL_API_GOOGLE = "https://script.google.com/macros/s/AKfycbxhTAZmN7l7M8CgfWCYRzKCMcbaT4Xvb8aaBkjkTtfLGpPXqFjlBfswGWhPWHNN_27j3A/exec"; 
+        const SENHA_CORRETA = "2111";
+        
+        let emTelaHistorico = false;
+
+        function ejecutarScriptPonte(url) {
+            const ponteAntiga = document.getElementById("ponte-google");
+            if (ponteAntiga) ponteAntiga.remove();
+            const script = document.createElement("script");
+            script.id = "ponte-google";
+            script.src = url;
+            document.body.appendChild(script);
+        }
+
+        window.onload = function() {
+            carregarAbasPlanilha();
+        };
+
+        function obterLetraColunaExcel(index) {
+            let numeroColuna = index + 2; 
+            let nomeColuna = "";
+            while (numeroColuna > 0) {
+                let resto = (numeroColuna - 1) % 26;
+                nomeColuna = String.fromCharCode(65 + resto) + nomeColuna;
+                numeroColuna = Math.floor((numeroColuna - resto) / 26);
+            }
+            return nomeColuna;
+        }
+
+        function carregarAbasPlanilha() {
+            const nomeCallback = "callbackListaAbas";
+            window[nomeCallback] = function(resposta) {
+                if (resposta.erro) {
+                    document.getElementById('status-busca').innerText = `Erro: ${resposta.erro}`;
+                    return;
+                }
+                const container = document.getElementById('container-cards');
+                container.innerHTML = "";
+                resposta.abas.forEach(nomeAba => {
+                    const card = document.createElement('div');
+                    card.className = 'equip-card';
+                    card.id = `card-${sanitizarId(nomeAba)}`;
+                    card.innerText = nomeAba;
+                    card.onclick = function() { seleccionarCard(nomeAba); };
+                    container.appendChild(card);
+                });
+                document.getElementById('status-busca').innerText = "Selecione um equipamento acima para monitorar.";
+                document.getElementById('status-busca').style.color = "#34c759";
+            };
+            ejecutarScriptPonte(`${URL_API_GOOGLE}?acao=listarAbas&callback=${nomeCallback}`);
+        }
+
+        function seleccionarCard(nomeDaAba) {
+            if(emTelaHistorico) alternarTelaHistorico(); 
+            const todosOsCards = document.querySelectorAll('.equip-card');
+            todosOsCards.forEach(card => card.classList.remove('active'));
+            const idCard = `card-${sanitizarId(nomeDaAba)}`;
+            const cardClicado = document.getElementById(idCard);
+            if (cardClicado) cardClicado.classList.add('active');
+            puxarAbaEquipamento(nomeDaAba);
+        }
+
+        function puxarAbaEquipamento(nomeDaAba) {
+            document.getElementById('status-busca').innerText = `Conectando à aba [${nomeDaAba}] em tempo real...`;
+            document.getElementById('status-busca').style.color = "#8a99ad";
+            const nomeCallback = "processarDadosGoogle";
+
+            window[nomeCallback] = function(dados) {
+                if (dados.erro) { alert(dados.erro); return; }
+                const painel = document.getElementById('painel-equipamento');
+
+                if (dados.isMultiplo) {
+                    let htmlTabela = `
+                        <h2 style="text-align:center; margin-bottom:20px;">Painel Geral - ${nomeDaAba}</h2>
+                        <div class="tabela-wrapper">
+                            <table>
+                                <thead>
+                                    <tr style="background: #0b1528;">
+                                        <th style="position: sticky; left: 0; background: #0b1528; z-index: 3; border-right: 2px solid #00f5ff;">Item</th>
+                    `;
+                    dados.equipamentos.forEach(eq => {
+                        htmlTabela += `<th>${eq.nome}</th>`;
+                    });
+                    htmlTabela += `</tr></thead><tbody>`;
+
+                    htmlTabela += `<tr><td style="position: sticky; left: 0; background: #0f1a2c; z-index: 2; border-right: 2px solid #00f5ff; font-weight:bold;">PAT</td>`;
+                    dados.equipamentos.forEach(eq => { htmlTabela += `<td>${eq.pat}</td>`; });
+                    htmlTabela += `</tr>`;
+
+                    htmlTabela += `<tr><td style="position: sticky; left: 0; background: #111e33; z-index: 2; border-right: 2px solid #00f5ff; font-weight:bold; vertical-align: top;">Especificações</td>`;
+                    dados.equipamentos.forEach(eq => { htmlTabela += `<td style="vertical-align: top; font-size:0.83rem; white-space: pre-line;">${eq.spec}</td>`; });
+                    htmlTabela += `</tr>`;
+
+                    htmlTabela += `<tr><td style="position: sticky; left: 0; background: #0f1a2c; z-index: 2; border-right: 2px solid #00f5ff; font-weight:bold;">Status Global</td>`;
+                    dados.equipamentos.forEach(eq => { htmlTabela += `<td>${eq.status}</td>`; });
+                    htmlTabela += `</tr>`;
+
+                    htmlTabela += `<tr><td style="position: sticky; left: 0; background: #102436; z-index: 2; border-right: 2px solid #00f5ff; font-weight:bold; color:#00f5ff;">Manutenção Preventiva</td>`;
+                    dados.equipamentos.forEach(eq => { 
+                        let corStatus = eq.manutencaoInfo === "À FAZER" ? "#ff3b30; font-weight:bold;" : "#e2e8f0";
+                        htmlTabela += `<td style="color: ${corStatus};">${eq.manutencaoInfo}</td>`; 
+                    });
+                    htmlTabela += `</tr>`;
+
+                    htmlTabela += `<tr><td style="position: sticky; left: 0; background: #0f1a2c; z-index: 2; border-right: 2px solid #00f5ff; font-weight:bold; color:#34c759;">Última Feita</td>`;
+                    dados.equipamentos.forEach(eq => { htmlTabela += `<td style="color:#34c759;">${eq.preventivaFeita}</td>`; });
+                    htmlTabela += `</tr>`;
+
+                    htmlTabela += `<tr><td style="position: sticky; left: 0; background: #0f1a2c; z-index: 2; border-right: 2px solid #00f5ff; font-weight:bold; color:#ff9500;">Próxima</td>`;
+                    dados.equipamentos.forEach(eq => { htmlTabela += `<td style="color:#ff9500; font-weight:bold;">${eq.proximaManutencao}</td>`; });
+                    htmlTabela += `</tr>`;
+
+                    htmlTabela += `<tr><td style="position: sticky; left: 0; background: #241923; z-index: 2; border-right: 2px solid #00f5ff; font-weight:bold; color:#ff4d4d;">Inf. Manutenção Corretiva</td>`;
+                    dados.equipamentos.forEach(eq => {
+                        let statusCorretiva = eq.corretivaInfo || "-";
+                        let corTextoCorretiva = statusCorretiva === "À FAZER" ? "color: #ff3b30; font-weight:bold;" : "color: #e2e8f0;";
+                        htmlTabela += `<td style="${corTextoCorretiva}">${statusCorretiva}</td>`;
+                    });
+                    htmlTabela += `</tr>`;
+
+                    htmlTabela += `<tr><td style="position: sticky; left: 0; background: #0f1a2c; z-index: 2; border-right: 2px solid #00f5ff; font-weight:bold;">Ações e Notas</td>`;
+                    dados.equipamentos.forEach((eq, index) => {
+                        let letraColuna = obterLetraColunaExcel(index); 
+                        htmlTabela += `
+                            <td>
+                                <div class="acoes-container">
+                                    <div class="btn-row">
+                                        <button class="btn-corretiva" onclick="abrirValidacaoSenha('sinalizar', '${nomeDaAba}', '${letraColuna}')">À FAZER</button>
+                                        <button class="btn-corretiva" style="background-color: #34c759; box-shadow: 0 0 8px rgba(52, 199, 89, 0.4);" onclick="abrirValidacaoSenha('concluir', '${nomeDaAba}', '${letraColuna}')">CONCLUÍDO</button>
+                                    </div>
+                                    <textarea id="obs-${letraColuna}" class="txt-obs" rows="2" placeholder="Escreva observações aqui..."></textarea>
+                                </div>
+                            </td>`;
+                    });
+                    htmlTabela += `</tr></tbody></table></div>`;
+                    painel.innerHTML = htmlTabela;
+
+                } else {
+                    let corManut = dados.manutencaoInfo === "À FAZER" ? "color: #ff3b30; font-weight:bold;" : "color: #e2e8f0;";
+                    painel.innerHTML = `
+                        <h2>${dados.nome}</h2>
+                        <div style="margin-bottom: 12px;"><span style="color:#8a99ad; font-weight:bold;">PAT:</span> ${dados.pat}</div>
+                        <div style="margin-bottom: 12px;"><span style="color:#8a99ad; font-weight:bold;">Especificações:</span> <br><span style="white-space: pre-line; line-height: 1.5; font-size: 0.95rem;">${dados.spec}</span></div>
+                        <div style="margin-bottom: 12px;"><span style="color:#8a99ad; font-weight:bold;">Status Global:</span> ${dados.status}</div>
+                        <div style="margin-bottom: 12px;"><span style="color:#00f5ff; font-weight:bold;">Inf. Manutenção:</span> <span style="${corManut}">${dados.manutencaoInfo}</span></div>
+                        <div style="margin-bottom: 12px;"><span style="color:#34c759; font-weight:bold;">Manutenção Feita:</span> ${dados.preventivaFeita}</div>
+                        <div style="margin-bottom: 12px;"><span style="color:#ff9500; font-weight:bold;">Próxima Manutenção:</span> ${dados.proximaManutencao}</div>
+                        <div style="margin-bottom: 12px;"><span style="color:#ff4d4d; font-weight:bold;">Inf. Manutenção Corretiva:</span> <span>${dados.corretivaInfo || "-"}</span></div>
+                        <div style="margin-bottom: 15px; max-width: 400px;">
+                            <span style="color:#8a99ad; font-weight:bold; display:block; margin-bottom:5px;">Observações de Manutenção:</span>
+                            <textarea id="obs-B" class="txt-obs" rows="2" placeholder="Escreva observações aqui..."></textarea>
+                        </div>
+                        <div style="margin-bottom: 12px; display:flex; gap: 10px;">
+                            <button class="btn-corretiva" onclick="abrirValidacaoSenha('sinalizar', '${nomeDaAba}', 'B')">Sinalizar Corretiva (À FAZER)</button>
+                            <button class="btn-corretiva" style="background-color: #34c759; box-shadow: 0 0 8px rgba(52, 199, 89, 0.4);" onclick="abrirValidacaoSenha('concluir', '${nomeDaAba}', 'B')">Concluir Corretiva (CONCLUÍDO)</button>
+                        </div>
+                    `;
+                }
+
+                painel.style.display = 'block';
+                document.getElementById('status-busca').innerText = `Aba [${nomeDaAba}] sincronizada com sucesso!`;
+                document.getElementById('status-busca').style.color = "#34c759";
+            };
+
+            ejecutarScriptPonte(`${URL_API_GOOGLE}?sheet=${encodeURIComponent(nomeDaAba)}&callback=${nomeCallback}`);
+        }
+
+        function alternarTelaHistorico() {
+            const painelEquip = document.getElementById("painel-equipamento");
+            const painelHist = document.getElementById("painel-historico");
+            const btnNav = document.getElementById("btn-alternar-tela");
+
+            if (!emTelaHistorico) {
+                painelEquip.style.display = "none";
+                const todosOsCards = document.querySelectorAll('.equip-card');
+                todosOsCards.forEach(card => card.classList.remove('active'));
+
+                document.getElementById('status-busca').innerText = "Carregando o log de histórico...";
+                document.getElementById('status-busca').style.color = "#ff9500";
+
+                window.callbackHistoricoTela = function(dados) {
+                    const corpoTabela = document.getElementById("corpo-tabela-historico");
+                    corpoTabela.innerHTML = "";
+
+                    if (dados.erro) {
+                        alert(dados.erro);
+                        return;
+                    }
+
+                    if (!dados.linhas || dados.linhas.length === 0) {
+                        corpoTabela.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#8a99ad;">Nenhum registro encontrado no histórico.</td></tr>`;
+                    } else {
+                        dados.linhas.reverse().forEach(linha => {
+                            let dataFormatada = new Date(linha.data).toLocaleString('pt-BR');
+                            corpoTabela.innerHTML += `
+                                <tr>
+                                    <td>${dataFormatada}</td>
+                                    <td style="color:#00f5ff; font-weight:bold;">${linha.equipamento}</td>
+                                    <td>${linha.acao}</td>
+                                    <td style="font-style:italic; color:#cbd5e1;">${linha.obs}</td>
+                                </tr>
+                            `;
+                        });
+                    }
+                    painelHist.style.display = "block";
+                    document.getElementById('status-busca').innerText = "Histórico carregado em tempo real.";
+                    document.getElementById('status-busca').style.color = "#34c759";
+                };
+
+                ejecutarScriptPonte(`${URL_API_GOOGLE}?sheet=HISTORICO_MANUT_CONSULTA&callback=callbackHistoricoTela`);
+                btnNav.innerText = "Voltar para Equipamentos";
+                emTelaHistorico = true;
+            } else {
+                painelHist.style.display = "none";
+                btnNav.innerText = "Consultar Histórico";
+                document.getElementById('status-busca').innerText = "Selecione um equipamento acima para monitorar.";
+                emTelaHistorico = false;
+            }
+        }
+
+        function abrirValidacaoSenha(tipo, nomeAba, letraColuna) {
+            const inputSenha = document.getElementById("input-senha-modal");
+            inputSenha.value = ""; 
+            document.getElementById("modal-senha").classList.add("active");
+            inputSenha.focus();
+
+            document.getElementById("btn-modal-enviar").onclick = function() {
+                if (inputSenha.value === SENHA_CORRETA) {
+                    fecharModalSenha();
+                    const textoObs = document.getElementById(`obs-${letraColuna}`).value;
+                    // === ATUALIZAÇÃO: ENVIANDO A SENHA DIGITADA PARA O SCRIPT DO GOOGLE ===
+                    if (tipo === 'sinalizar') executarSinalizarCorretiva(nomeAba, letraColuna, textoObs, inputSenha.value);
+                    if (tipo === 'concluir') executarConcluirCorretiva(nomeAba, letraColuna, textoObs, inputSenha.value);
+                } else {
+                    alert("Senha Incorreta!");
+                    inputSenha.value = ""; inputSenha.focus();
+                }
+            };
+        }
+
+        function fecharModalSenha() { document.getElementById("modal-senha").classList.remove("active"); }
+
+        // === ATUALIZAÇÃO: RECEBENDO A SENHA OPERACIONAL E ADICIONANDO NA URL DA API ===
+        function executarSinalizarCorretiva(nomeAba, letraColuna, observacao, senha) {
+            if (confirm(`Confirmar sinalização de MANUTENÇÃO CORRETIVA?`)) {
+                document.getElementById('status-busca').innerText = "Registrando ação...";
+                window.processarRetornoAcao = function(res) {
+                    if (res.erro) {
+                        alert(res.erro);
+                    } else if (res.sucesso) {
+                        alert("Ordem aberta com sucesso!");
+                    }
+                    puxarAbaEquipamento(nomeAba);
+                };
+                ejecutarScriptPonte(`${URL_API_GOOGLE}?acao=registrarCorretiva&sheet=${encodeURIComponent(nomeAba)}&coluna=${letraColuna}&obs=${encodeURIComponent(observacao)}&senha=${encodeURIComponent(senha)}&callback=processarRetornoAcao`);
+            }
+        }
+
+        // === ATUALIZAÇÃO: RECEBENDO A SENHA OPERACIONAL E ADICIONANDO NA URL DA API ===
+        function ejecutarConcluirCorretiva(nomeAba, letraColuna, observacao, senha) {
+            if (confirm(`Confirmar CONCLUSÃO da manutenção corretiva?`)) {
+                document.getElementById('status-busca').innerText = "Finalizando ação...";
+                window.processarRetornoAcao = function(res) {
+                    if (res.erro) {
+                        alert(res.erro);
+                    } else if (res.sucesso) {
+                        alert("Manutenção concluída!");
+                    }
+                    puxarAbaEquipamento(nomeAba);
+                };
+                ejecutarScriptPonte(`${URL_API_GOOGLE}?acao=concluirCorretiva&sheet=${encodeURIComponent(nomeAba)}&coluna=${letraColuna}&obs=${encodeURIComponent(observacao)}&senha=${encodeURIComponent(senha)}&callback=processarRetornoAcao`);
+            }
+        }
+
+        function sanitizarId(nome) { return nome.replace(/[^a-zA-Z0-9]/g, "_"); }
+    </script>
+</body>
+</html>
