@@ -393,7 +393,7 @@
 
                     htmlTabela += `<tr><td style="position: sticky; left: 0; background: #102436; z-index: 2; border-right: 2px solid #00f5ff; font-weight:bold; color:#00f5ff;">Manutenção Preventiva</td>`;
                     dados.equipamentos.forEach(eq => { 
-                        let corStatus = eq.manutencaoInfo === "À FAZER" ? "#ff3b30; font-weight:bold;" : "#e2e8f0";
+                        let corStatus = eq.manutencaoInfo === "A FAZER" ? "#ff3b30; font-weight:bold;" : "#e2e8f0";
                         htmlTabela += `<td style="color: ${corStatus};">${eq.manutencaoInfo}</td>`; 
                     });
                     htmlTabela += `</tr>`;
@@ -421,7 +421,7 @@
                             <td>
                                 <div class="acoes-container">
                                     <div class="btn-row">
-                                        <button class="btn-corretiva" onclick="abrirValidacaoSenha('sinalizar', '${nomeDaAba}', '${letraColuna}')">À FAZER</button>
+                                        <button class="btn-corretiva" onclick="abrirValidacaoSenha('sinalizar', '${nomeDaAba}', '${letraColuna}')">A FAZER</button>
                                         <button class="btn-corretiva" style="background-color: #34c759; box-shadow: 0 0 8px rgba(52, 199, 89, 0.4);" onclick="abrirValidacaoSenha('concluir', '${nomeDaAba}', '${letraColuna}')">CONCLUÍDO</button>
                                     </div>
                                     <textarea id="obs-${letraColuna}" class="txt-obs" rows="2" placeholder="Escreva observações aqui..."></textarea>
@@ -521,12 +521,14 @@
             inputSenha.focus();
 
             document.getElementById("btn-modal-enviar").onclick = function() {
-                if (inputSenha.value === SENHA_CORRETA) {
+                const senhaDigitada = inputSenha.value; // Salva a senha antes de fechar o modal
+                if (senhaDigitada === SENHA_CORRETA) {
                     fecharModalSenha();
-                    const textoObs = document.getElementById(`obs-${letraColuna}`).value;
-                    // === ATUALIZAÇÃO: ENVIANDO A SENHA DIGITADA PARA O SCRIPT DO GOOGLE ===
-                    if (tipo === 'sinalizar') executarSinalizarCorretiva(nomeAba, letraColuna, textoObs, inputSenha.value);
-                    if (tipo === 'concluir') executarConcluirCorretiva(nomeAba, letraColuna, textoObs, inputSenha.value);
+                    const elObs = document.getElementById(`obs-${letraColuna}`);
+                    const textoObs = elObs ? elObs.value : "";
+                    
+                    if (tipo === 'sinalizar') ejecutarSinalizarCorretiva(nomeAba, letraColuna, textoObs, senhaDigitada);
+                    if (tipo === 'concluir') ejecutarConcluirCorretiva(nomeAba, letraColuna, textoObs, senhaDigitada);
                 } else {
                     alert("Senha Incorreta!");
                     inputSenha.value = ""; inputSenha.focus();
@@ -534,10 +536,13 @@
             };
         }
 
-        function fecharModalSenha() { document.getElementById("modal-senha").classList.remove("active"); }
+        function fecharModalSenha() { 
+            const inputSenha = document.getElementById("input-senha-modal");
+            inputSenha.value = "";
+            document.getElementById("modal-senha").classList.remove("active"); 
+        }
 
-        // === ATUALIZAÇÃO: RECEBENDO A SENHA OPERACIONAL E ADICIONANDO NA URL DA API ===
-        function executarSinalizarCorretiva(nomeAba, letraColuna, observacao, senha) {
+        function ejecutarSinalizarCorretiva(nomeAba, letraColuna, observacao, senha) {
             if (confirm(`Confirmar sinalização de MANUTENÇÃO CORRETIVA?`)) {
                 document.getElementById('status-busca').innerText = "Registrando ação...";
                 window.processarRetornoAcao = function(res) {
@@ -552,7 +557,6 @@
             }
         }
 
-        // === ATUALIZAÇÃO: RECEBENDO A SENHA OPERACIONAL E ADICIONANDO NA URL DA API ===
         function ejecutarConcluirCorretiva(nomeAba, letraColuna, observacao, senha) {
             if (confirm(`Confirmar CONCLUSÃO da manutenção corretiva?`)) {
                 document.getElementById('status-busca').innerText = "Finalizando ação...";
